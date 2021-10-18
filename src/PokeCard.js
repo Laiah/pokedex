@@ -12,9 +12,9 @@ const PokeCard = props => {
             shiny: props.pokemon.sprites.back_shiny
         }
     }
-    console.log(props.pokemon);
-    let front = props.colorMode === "normal" ? sprites.front.default : sprites.front.shiny;
-    let back = props.colorMode === "normal" ? sprites.back.default : sprites.back.shiny;
+
+    let front = props.isShinyModeOn ? sprites.front.shiny : sprites.front.default;
+    let back = props.isShinyModeOn ? sprites.back.shiny : sprites.back.default;
     return (
         <Box borderWidth="1px" borderRadius="lg"  p="6" w="75%" h="250px">
             <Image src={front} boxSize="100px"

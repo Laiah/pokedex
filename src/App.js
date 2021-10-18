@@ -1,82 +1,78 @@
 //import logo from './logo.svg';
 import './App.css';
-import React from 'react';
-import { ChakraProvider, Button, Container } from "@chakra-ui/react"
+import React, { useState, useEffect } from 'react';
+import { ChakraProvider, Button, Container, useColorMode } from "@chakra-ui/react"
 import PokeCard from './PokeCard';
+import theme from './theme';
 
-class App extends React.Component {
-  constructor() {
-    super();
-    this.state = {
-      PokemonList: [],
-      IndividualPokemons: [],
-      colorMode: "normal"
-    }
+function ShinyButton({ colorMode, toggleColorMode, isDisabled }) {
+  return (
+    <Button onClick={toggleColorMode} isDisabled={isDisabled}>
+      Toggle {colorMode === "light" ? "Shinies" : "Normal"}
+    </Button>
+  );
+}
 
-    this.fetchPokemons = this.fetchPokemons.bind(this);
-    this.fetchOnePokemon = this.fetchOnePokemon.bind(this);
-    this.changeColorMode = this.changeColorMode.bind(this);
-  }
+const PokemonList = ({ pokemonList, setPokemonList, isShinyModeOn }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [next, setNext] = useState('');
+  let orderedList = {};
 
-  componentDidMount() {
-    this.fetchPokemons();
-  }
-
-  fetchPokemons() {
-    this.setState({PokemonList: new Promise(resolve => {
-      fetch(`https://pokeapi.co/api/v2/pokemon/?limit=10`, {
+  useEffect(() => {
+    fetch(`https://pokeapi.co/api/v2/pokemon/?limit=10`, {
         method: 'GET',
         headers: {
           Accept: "application/json"
         }
       })
         .then(response => response.json())
-        .then(json => {
-          const PokemonList = json.results;
-          this.setState({PokemonList});
+        .then((json) => {
+          setNext(json.next);
+
+          return json.results;
         })
-      })   
-    }) 
-  }
-
-  fetchOnePokemon() {
-    for (let pokemon of this.state.PokemonList) {
-      fetch(pokemon.url, {
-        method: 'GET',
-        headers: {
-          Accept: "application/json"
-        }
-      })
-        .then(response => response.json())
-        .then(json => {
-          const IndividualPokemon = json;
-          this.setState({
-            IndividualPokemons: [...this.state.IndividualPokemons, IndividualPokemon]
-          });
+        .then((json) => {
+          const promises = json.map(pokemon => {
+            return fetch(pokemon.url, {
+              method: 'GET',
+              headers: {
+                Accept: "application/json"
+              }
+            })
+              .then(response => response.json())
+              .then(pokemonInfo => {
+                orderedList[pokemonInfo.id] = pokemonInfo;
+                return orderedList;
+              })
+          })
+        
+          Promise.all(promises).then(pokemonInfo => {
+            setPokemonList(pokemonInfo.pop());
+            setIsLoaded(true);
+          })
         })
-    }    
-  }
+  }, [])
 
-  changeColorMode() {
-    this.setState({colorMode: this.state.colorMode === "normal" ? "shiny" : "normal"});
-  }
+  return isLoaded ?
+     (<Container>
+          {Object.entries(pokemonList).map((pokemon) => <PokeCard pokemon={pokemon[1]} isShinyModeOn={isShinyModeOn} key={pokemon[0]} />)}
+      </Container>)
+    : <div>chargement...</div>
+  ;
+}
 
-  render() {
-    console.log(this.state)
-    return (
-      <ChakraProvider>
-        <Button onClick={this.fetchOnePokemon}>Get Pokemon</Button>
-        <Button onClick={this.changeColorMode} isDisabled={this.state.IndividualPokemons.length === 0}>Shinies</Button>
-       
-        <Container>
-          {this.state.IndividualPokemons ? this.state.IndividualPokemons.sort((a, b) => a.id > b.id ? 1 : -1).map((pokemon) => 
-            <PokeCard pokemon={pokemon} colorMode={this.state.colorMode} />
-          ) : ''}
-        </Container>
-      </ChakraProvider>
-    );
-  }
+const App = () => {
+  const [pokemonList, setPokemonList] = useState({});
+  const { colorMode, toggleColorMode } = useColorMode();
 
+  return (
+    <ChakraProvider theme={theme}>
+
+      <ShinyButton isDisabled={pokemonList.length === 0} colorMode={colorMode} toggleColorMode={toggleColorMode} />
+
+      <PokemonList pokemonList={pokemonList} setPokemonList={setPokemonList} isShinyModeOn={colorMode !== 'light'} />
+    </ChakraProvider>
+  );
 }
 
 export default App;

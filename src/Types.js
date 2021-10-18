@@ -61,8 +61,8 @@ const PokeTypes = props => {
     return (
         props.types.map(function(type) {
             return (
-                <Tooltip label={type.type.name}>
-                    <Image src={Types[type.type.name].icon} boxSize="20px" />
+                <Tooltip label={type.type.name} key={type.type.name} >
+                    <Image src={Types[type.type.name].icon} boxSize="20px"  />
                 </Tooltip>
             );
         })
